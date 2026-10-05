@@ -29,6 +29,7 @@
 
 ```bash
 flutter pub get
+scripts/setup_firebase.sh           # Firebase 설정 파일 복사(아래 FCM 항목), iOS 빌드에 필요
 dart run build_runner build -d      # 생성 파일(*.g.dart, *.freezed.dart)은 커밋하지 않는다
 ```
 
@@ -80,12 +81,18 @@ VS Code 는 `.vscode/launch.json` 의 `phodam (mock)` / `phodam (dev)` / `phodam
 
 - **Apple 로그인**: Apple Developer 에서 App ID(`com.drlabs.podam`)에 Sign in with Apple 활성화. `ios/Runner/Runner.entitlements` 는 이미 연결되어 있다. 서버의 Apple `aud` 는 번들 ID. Android 의 Apple 로그인은 서비스 ID·웹 리다이렉트가 필요해 MVP 에서는 iOS 만 노출한다.
 - **Google 로그인**: Google Cloud 콘솔에서 웹(서버)·iOS·Android(패키지 + SHA-1) OAuth 클라이언트 생성 → `GOOGLE_SERVER_CLIENT_ID`(필수), `GOOGLE_IOS_CLIENT_ID` 채우기. iOS 는 `Info.plist` 에 `CFBundleURLTypes` 로 iOS 클라이언트의 reversed client ID URL scheme 을 추가해야 한다.
-- **FCM 푸시**
-  1. Firebase 프로젝트에 iOS(`com.drlabs.podam`)·Android(`com.drlabs.podam`) 앱 등록
-  2. `ios/Runner/GoogleService-Info.plist` 추가(Xcode 에서 Runner 타깃에 포함), APNs 인증 키를 Firebase 에 업로드, Push Notifications capability 확인(`aps-environment` 는 entitlements 에 있음)
-  3. `android/app/google-services.json` 추가 후 `android/settings.gradle.kts` 에 `id("com.google.gms.google-services") version "<최신>" apply false`, `android/app/build.gradle.kts` 에 `id("com.google.gms.google-services")` 를 추가
-  - 설정 파일이 없으면 앱은 Firebase 초기화 실패를 로그로만 남기고 푸시 없이 동작한다. (그래서 google-services 플러그인은 아직 추가하지 않았다. 파일 없이 추가하면 빌드가 깨진다.)
+- **FCM 푸시** (Firebase 프로젝트 `phodam-53a50`, iOS·Android 앱 `com.drlabs.podam` 등록 완료)
+  - 설정 파일은 레포에 커밋하지 않는다(.gitignore). 처음 클론했거나 파일이 바뀌면 복사한다:
+    ```bash
+    scripts/setup_firebase.sh            # ~/.secrets/phodam 의 GoogleService-Info.plist, google-services.json 복사
+    scripts/setup_firebase.sh <디렉터리>  # 다른 위치에서 복사
+    ```
+  - iOS: `ios/Runner/GoogleService-Info.plist` 는 Runner 타깃 리소스로 등록되어 있어 **파일이 없으면 iOS 빌드가 실패한다**. 위 스크립트를 먼저 실행한다.
+  - Android: `com.google.gms.google-services` 플러그인은 `android/app/google-services.json` 이 있을 때만 적용한다. 파일이 없으면 Firebase 없이 빌드되고 푸시만 꺼진다.
+  - 초기화는 설정 파일 기반 `Firebase.initializeApp()`(flutterfire configure 미사용). 실패하면 로그만 남기고 푸시 없이 동작한다.
+  - iOS 실제 푸시는 APNs 인증 키를 Firebase 에 올려야 동작한다(미완). Push Notifications capability 의 `aps-environment` 는 entitlements 에 있다.
   - 동작: 권한 요청 → 토큰을 `PUT /me/devices` 로 등록(로그인 시·토큰 갱신 시), 포그라운드 수신 시 `/me` 갱신, 알림 탭 시 `data.date_id` 로 이동(`lib/app/push_routes.dart`).
+  - Google 로그인용 OAuth 클라이언트를 만들면 설정 파일을 다시 받아 스크립트로 복사하고, `GOOGLE_SERVER_CLIENT_ID`·`GOOGLE_IOS_CLIENT_ID`·iOS URL scheme 을 채운다(위 Google 로그인 항목).
 - **prod**: `env/prod.json` 의 `BASE_URL` 등.
 
 ## 구조 (feature-first)

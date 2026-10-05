@@ -48,3 +48,9 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+// google-services.json 이 있을 때만 적용한다(없으면 Firebase 없이 빌드되고 푸시만 꺼진다).
+// 파일은 scripts/setup_firebase.sh 로 복사한다.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
