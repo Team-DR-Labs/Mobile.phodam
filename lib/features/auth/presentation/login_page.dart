@@ -78,7 +78,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     ? null
                     : () => _run((auth) => auth.signInWithGoogle()),
               ),
-            if (Env.devLoginEnabled) _devLogin(theme),
+            if (Env.devToolsEnabled) _devLogin(theme),
           ],
         ),
       ),

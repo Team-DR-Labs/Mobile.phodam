@@ -45,7 +45,7 @@ flutter run --dart-define-from-file=env/mock.json
 - 2인 시뮬레이션
   - 화면 아래 **개발용: 상대 행동 시뮬레이트** 패널(커플 연결·홈·상대 대기 화면)에서 상대 연결, 상대 데이트 시작·주제 확인·제출, 마감 지나게, 필름 지급을 누른다.
   - 또는 로그아웃 후 다른 dev_id 로 로그인하면 같은 가짜 서버 상태를 공유하므로 두 사람을 번갈아 조작할 수 있다.
-- 카메라가 없는 iOS 시뮬레이터에서는 mock·dev 환경에 한해 다미 이미지로 촬영한다.
+- 카메라가 없는 iOS 시뮬레이터에서는 mock·dev 디버그 빌드에 한해 다미 이미지로 촬영한다.
 
 ### 실제 서버와 실행 (dev)
 
@@ -70,7 +70,7 @@ VS Code 는 `.vscode/launch.json` 의 `phodam (mock)` / `phodam (dev)` / `phodam
 
 | 키 | 설명 |
 |---|---|
-| `ENV` | `dev` / `mock` / `prod`. prod 가 아니면 개발용 로그인을 보여준다 |
+| `ENV` | `dev` / `mock` / `prod`. 지정하지 않으면 `prod`. 개발용 로그인·가짜(다미) 카메라는 `dev`·`mock` 이면서 릴리스 빌드가 아닐 때만 보인다 |
 | `BASE_URL` | `/v1` 까지 포함한 API 주소 |
 | `USE_MOCK` | `true` 면 서버 대신 가짜 서버(MockBackend) |
 | `GOOGLE_SERVER_CLIENT_ID` | Google 웹(서버) 클라이언트 ID. 서버의 Google `aud` 와 같아야 한다. 비어 있으면 Google 버튼을 숨긴다 |

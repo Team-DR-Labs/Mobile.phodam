@@ -82,8 +82,8 @@ class _CameraPageState extends ConsumerState<CameraPage>
       if (cameras.isEmpty) {
         if (!mounted) return;
         setState(() {
-          _fakeCamera = !Env.isProd;
-          if (Env.isProd) _cameraError = '사용할 수 있는 카메라가 없어요.';
+          _fakeCamera = Env.devToolsEnabled;
+          if (!Env.devToolsEnabled) _cameraError = '사용할 수 있는 카메라가 없어요.';
         });
         return;
       }
@@ -116,8 +116,8 @@ class _CameraPageState extends ConsumerState<CameraPage>
       ref.read(appLoggerProvider).w('카메라를 쓸 수 없음', error: e);
       if (!mounted) return;
       setState(() {
-        _fakeCamera = !Env.isProd;
-        if (Env.isProd) _cameraError = '카메라를 열 수 없어요.';
+        _fakeCamera = Env.devToolsEnabled;
+        if (!Env.devToolsEnabled) _cameraError = '카메라를 열 수 없어요.';
       });
     } finally {
       _initializing = false;
