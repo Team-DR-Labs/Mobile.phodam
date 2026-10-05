@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:phodam/core/network/api_error.dart';
 import 'package:phodam/core/network/auth_interceptor.dart';
 import 'package:phodam/core/storage/secure_storage.dart';
 
@@ -131,8 +132,32 @@ void main() {
           reason: 'offline',
         );
 
-    await expectLater(dio.get<dynamic>('/me'), throwsA(isA<DioException>()));
+    final error = await dio
+        .get<dynamic>('/me')
+        .then<Object?>((_) => null, onError: (Object e) => e);
+
     expect(expiredCalls, 0);
+    expect(ApiException.from(error!).code, ApiErrorCode.network,
+        reason: '원래 401 대신 갱신 오류를 전달해 위에서 로그아웃으로 오인하지 않는다');
+  });
+
+  test('갱신 요청이 5xx 면 로그아웃하지 않고 서버 오류로 전달한다', () async {
+    refreshImpl = () async => throw DioException(
+          requestOptions: RequestOptions(path: '/auth/refresh'),
+          response: Response(
+            requestOptions: RequestOptions(path: '/auth/refresh'),
+            statusCode: 503,
+            data: {'code': 'INTERNAL_ERROR', 'message': 'down'},
+          ),
+          type: DioExceptionType.badResponse,
+        );
+
+    final error = await dio
+        .get<dynamic>('/me')
+        .then<Object?>((_) => null, onError: (Object e) => e);
+
+    expect(expiredCalls, 0);
+    expect(ApiException.from(error!).code, ApiErrorCode.internalError);
   });
 
   test('로그인 경로의 401 은 갱신하지 않는다', () async {

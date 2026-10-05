@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:retrofit/retrofit.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../core/auth/session_events.dart';
 import '../../../core/config/env.dart';
 import '../../../core/network/api_error.dart';
 import '../../../core/network/dio_provider.dart';
@@ -61,12 +62,22 @@ class ApiMeRepository implements MeRepository {
 }
 
 class MockMeRepository implements MeRepository {
-  MockMeRepository(this._backend);
+  MockMeRepository(this._backend, {required this.onUnauthorized});
 
   final MockBackend _backend;
 
+  /// 가짜 서버에는 토큰 갱신이 없어 여기서 세션 만료를 알린다(앱 재시작 후 등).
+  final void Function() onUnauthorized;
+
   @override
-  Future<Me> getMe() async => _backend.me();
+  Future<Me> getMe() async {
+    try {
+      return _backend.me();
+    } on ApiException catch (e) {
+      if (e.code == ApiErrorCode.unauthorized) onUnauthorized();
+      rethrow;
+    }
+  }
 
   @override
   Future<Me> updateNickname(String nickname) async =>
@@ -81,6 +92,11 @@ class MockMeRepository implements MeRepository {
 
 @Riverpod(keepAlive: true)
 MeRepository meRepository(Ref ref) {
-  if (Env.useMock) return MockMeRepository(ref.watch(mockBackendProvider));
+  if (Env.useMock) {
+    return MockMeRepository(
+      ref.watch(mockBackendProvider),
+      onUnauthorized: () => ref.read(sessionEventsProvider).expire(),
+    );
+  }
   return ApiMeRepository(MeApi(ref.watch(dioProvider)));
 }

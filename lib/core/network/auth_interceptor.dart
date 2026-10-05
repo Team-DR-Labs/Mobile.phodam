@@ -10,6 +10,8 @@ typedef TokenRefresher = Future<String?> Function();
 ///
 /// - 동시에 여러 요청이 401 을 받아도 갱신은 한 번만 수행한다.
 /// - 갱신이 무효로 끝나면 [onSessionExpired] 를 부르고 원래 오류를 전달한다.
+///   세션 만료 판단은 여기서만 한다.
+/// - 갱신을 판단할 수 없으면(네트워크·5xx) 로그아웃하지 않고 갱신 오류를 전달한다.
 class AuthInterceptor extends Interceptor {
   AuthInterceptor({
     required this._storage,
@@ -64,8 +66,10 @@ class AuthInterceptor extends Interceptor {
     final String? token;
     try {
       token = await _validToken(options);
-    } catch (_) {
-      return handler.next(err);
+    } catch (refreshError) {
+      // 갱신 여부를 판단할 수 없다(네트워크·5xx). 원래 401 을 그대로 넘기면
+      // 위에서 세션 만료로 오인하므로 갱신 오류로 바꿔 전달한다.
+      return handler.next(_refreshFailed(options, refreshError));
     }
     if (token == null) {
       _onSessionExpired();
@@ -87,6 +91,19 @@ class AuthInterceptor extends Interceptor {
     final used = options.headers['Authorization'];
     if (current != null && used != 'Bearer $current') return current;
     return _refreshOnce();
+  }
+
+  static DioException _refreshFailed(RequestOptions options, Object error) {
+    if (error is DioException) {
+      return DioException(
+        requestOptions: options,
+        response: error.response,
+        type: error.type,
+        error: error.error,
+        message: 'token refresh failed: ${error.message}',
+      );
+    }
+    return DioException(requestOptions: options, error: error);
   }
 
   Future<String?> _refreshOnce() {
