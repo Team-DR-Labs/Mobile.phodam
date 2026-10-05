@@ -8,10 +8,12 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../features/me/data/me_repository.dart';
 import '../logger/app_logger.dart';
+import 'push_message.dart';
 
 part 'push_service.g.dart';
 
 typedef PushDataHandler = void Function(Map<String, dynamic> data);
+typedef PushMessageHandler = void Function(PushMessage message);
 
 /// FCM. Firebase 설정 파일이 없으면 초기화에 실패하고 조용히 건너뛴다.
 class PushService {
@@ -28,7 +30,7 @@ class PushService {
   /// [isSignedIn] 이 false 면 토큰 갱신 이벤트를 서버에 등록하지 않는다
   /// (로그인 후 [registerToken] 이 등록한다).
   Future<void> init({
-    required PushDataHandler onForeground,
+    required PushMessageHandler onForeground,
     required PushDataHandler onOpen,
     required bool Function() isSignedIn,
   }) async {
@@ -43,7 +45,15 @@ class PushService {
       final messaging = FirebaseMessaging.instance;
       await messaging.requestPermission();
       _subscriptions
-        ..add(FirebaseMessaging.onMessage.listen((m) => onForeground(m.data)))
+        ..add(FirebaseMessaging.onMessage.listen(
+          (m) => onForeground(
+            PushMessage(
+              title: m.notification?.title,
+              body: m.notification?.body,
+              data: m.data,
+            ),
+          ),
+        ))
         ..add(FirebaseMessaging.onMessageOpenedApp
             .listen((m) => onOpen(m.data)))
         ..add(messaging.onTokenRefresh.listen((token) {

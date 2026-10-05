@@ -51,12 +51,14 @@ dependencies:
   image: ^4.10.1
   path_provider: ^2.1.6
   path: ^1.9.1
-  connectivity_plus: ^7.3.2
+  # 7.3.2 는 nm 0.6(dbus 0.8)을 써서 flutter_local_notifications 22(linux: dbus 0.7)와 충돌한다.
+  connectivity_plus: 7.3.1
   gal: ^2.3.3
   firebase_core: ^4.15.0
   firebase_messaging: ^16.7.0
   intl: ^0.20.3
   uuid: ^4.6.0
+  flutter_local_notifications: ^22.3.1
 
 dev_dependencies:
   flutter_test:

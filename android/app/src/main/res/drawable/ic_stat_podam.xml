@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 알림 small icon: 흰색 단색 필름 카메라. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M9,4L7.6,6L4,6C2.9,6 2,6.9 2,8L2,18C2,19.1 2.9,20 4,20L20,20C21.1,20 22,19.1 22,18L22,8C22,6.9 21.1,6 20,6L16.4,6L15,4ZM12,8.5A4.5,4.5 0,1 1,12 17.5A4.5,4.5 0,1 1,12 8.5ZM12,10.5A2.5,2.5 0,1 0,12 15.5A2.5,2.5 0,1 0,12 10.5Z" />
+</vector>

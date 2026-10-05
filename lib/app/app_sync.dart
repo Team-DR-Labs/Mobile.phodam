@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/network/connectivity.dart';
+import '../core/push/local_notifier.dart';
 import '../core/push/push_service.dart';
 import '../features/auth/presentation/auth_controller.dart';
 import '../features/camera/data/upload_queue.dart';
@@ -42,19 +43,27 @@ class _AppSyncState extends ConsumerState<AppSync> {
   }
 
   Future<void> _initPush() async {
+    final local = ref.read(localNotificationsProvider);
+    await local.init(onTap: _openFromPush);
     final push = ref.read(pushServiceProvider);
     await push.init(
       isSignedIn: () => mounted && _signedIn,
-      onForeground: (_) {
+      onForeground: (message) {
         if (_signedIn) ref.read(meControllerProvider.notifier).reload();
+        // FCM 은 앱 사용 중에는 알림을 띄우지 않으므로 직접 보여준다.
+        local.show(message);
       },
-      onOpen: (data) {
-        final route = routeForPush(data);
-        // 콜드 스타트 알림은 인증 복원·/me 로딩 전에 올 수 있어 준비될 때까지 보류한다.
-        if (route != null) _go(_deepLink.offer(route, ready: _ready));
-      },
+      onOpen: _openFromPush,
     );
     if (_signedIn) await push.registerToken();
+  }
+
+  /// 시스템 알림이나 로컬 알림을 탭했을 때.
+  void _openFromPush(Map<String, dynamic> data) {
+    if (!mounted) return;
+    final route = routeForPush(data);
+    // 콜드 스타트 알림은 인증 복원·/me 로딩 전에 올 수 있어 준비될 때까지 보류한다.
+    if (route != null) _go(_deepLink.offer(route, ready: _ready));
   }
 
   @override

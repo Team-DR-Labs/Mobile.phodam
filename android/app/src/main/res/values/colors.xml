@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 알림 아이콘 강조색(다미 카라멜). -->
+    <color name="podam_notification">#C98B4E</color>
+</resources>
