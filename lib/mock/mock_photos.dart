@@ -171,6 +171,7 @@ extension MockPhotoEndpoints on MockBackend {
   }
 
   DiaryDetail diary(String dateId) {
+    _sweep();
     final user = _me;
     final date = _dates[dateId];
     final mine = date?.participants[user.id];

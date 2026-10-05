@@ -132,6 +132,19 @@ class _TopicBodyState extends ConsumerState<_TopicBody> {
         ),
       ];
     }
+    if (date.me.status == ParticipantStatus.submitted) {
+      return [
+        FilledButton(
+          onPressed: () => context.push(AppRoutes.receive(date.id)),
+          child: const Text('내 사진 받기'),
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton(
+          onPressed: () => context.push(AppRoutes.waiting(date.id)),
+          child: const Text('상대 상태 보기'),
+        ),
+      ];
+    }
     return const [];
   }
 }

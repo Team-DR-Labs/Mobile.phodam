@@ -1,0 +1,132 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:phodam/features/camera/data/models/photo_models.dart';
+import 'package:phodam/features/camera/data/models/queued_photo.dart';
+import 'package:phodam/features/submit/presentation/submit_page.dart';
+import 'package:phodam/features/submit/presentation/submit_photos.dart';
+
+import '../../helpers/fixtures.dart';
+
+void main() {
+  group('mergeSelectable', () {
+    test('서버에 uploaded 인 사진만 고를 수 있고 로컬 파일을 우선 쓴다', () {
+      final local = [
+        QueuedPhoto(
+          photoId: 'p1',
+          dateId: 'd1',
+          filePath: '/q/p1.jpg',
+          status: QueueStatus.uploaded,
+          createdAt: t0,
+        ),
+        QueuedPhoto(
+          photoId: 'p2',
+          dateId: 'd1',
+          filePath: '/q/p2.jpg',
+          status: QueueStatus.pending,
+          createdAt: t0.add(const Duration(minutes: 1)),
+        ),
+      ];
+
+      final merged = mergeSelectable([photoWithUrl('p1')], local);
+
+      expect(merged.map((p) => p.photoId), ['p1', 'p2']);
+      expect(merged[0].uploaded, isTrue);
+      expect(merged[0].localPath, '/q/p1.jpg');
+      expect(merged[1].uploaded, isFalse);
+    });
+
+    test('reserved 등 다른 상태는 후보에서 뺀다', () {
+      final merged = mergeSelectable(
+        [photoWithUrl('p1', status: PhotoStatus.reserved)],
+        const [],
+      );
+      expect(merged, isEmpty);
+    });
+  });
+
+  test('글자 수는 앞뒤 공백을 빼고 rune 으로 센다', () {
+    expect(captionLength('  안녕  '), 2);
+    expect(captionLength('👍'), 1);
+    expect(normalizeCaption('   '), isNull);
+    expect(normalizeCaption(' 좋아 '), '좋아');
+  });
+
+  group('SubmitPage', () {
+    Future<void> pump(WidgetTester tester, List<SelectablePhoto> photos) async {
+      tester.view
+        ..physicalSize = const Size(800, 1600)
+        ..devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            selectablePhotosProvider('d1').overrideWith((ref) async => photos),
+          ],
+          child: const MaterialApp(home: SubmitPage(dateId: 'd1')),
+        ),
+      );
+      await tester.pump();
+    }
+
+    final photos = [
+      SelectablePhoto(photoId: 'p1', createdAt: t0, uploaded: true),
+      SelectablePhoto(photoId: 'p2', createdAt: t0, uploaded: false),
+    ];
+
+    testWidgets('제출 전 사진에는 저장·공유·다운로드 UI 가 없다', (tester) async {
+      await pump(tester, photos);
+
+      for (final icon in [
+        Icons.download,
+        Icons.download_outlined,
+        Icons.save_alt,
+        Icons.share,
+        Icons.ios_share,
+      ]) {
+        expect(find.byIcon(icon), findsNothing);
+      }
+      expect(find.textContaining('저장'), findsNothing);
+      expect(find.textContaining('공유'), findsNothing);
+      expect(find.textContaining('다운로드'), findsNothing);
+    });
+
+    testWidgets('업로드 중인 사진은 고를 수 없고, 고르기 전에는 제출할 수 없다',
+        (tester) async {
+      await pump(tester, photos);
+      FilledButton submit() =>
+          tester.widget<FilledButton>(find.byKey(const Key('submitButton')));
+
+      expect(find.text('업로드 중'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('pick-p2')));
+      await tester.pump();
+      expect(submit().onPressed, isNull);
+
+      await tester.tap(find.byKey(const Key('pick-p1')));
+      await tester.pump();
+      expect(submit().onPressed, isNotNull);
+    });
+
+    testWidgets('제출하면 수정할 수 없다는 확인을 받는다', (tester) async {
+      await pump(tester, photos);
+      await tester.tap(find.byKey(const Key('pick-p1')));
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('submitButton')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('제출 후 수정할 수 없어요.'), findsOneWidget);
+      await tester.tap(find.text('취소'));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('글은 200자(rune)까지만 입력된다', (tester) async {
+      await pump(tester, photos);
+      await tester.enterText(
+          find.byKey(const Key('captionField')), '가' * 250);
+      await tester.pump();
+
+      final field = tester.widget<TextField>(find.byKey(const Key('captionField')));
+      expect(field.controller!.text.runes.length, lessThanOrEqualTo(200));
+    });
+  });
+}

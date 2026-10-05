@@ -8,6 +8,12 @@ import '../features/auth/presentation/splash_page.dart';
 import '../features/camera/presentation/camera_page.dart';
 import '../features/couple/presentation/couple_page.dart';
 import '../features/date/presentation/topic_page.dart';
+import '../features/date/presentation/waiting_page.dart';
+import '../features/develop/presentation/develop_page.dart';
+import '../features/develop/presentation/receive_page.dart';
+import '../features/diary/presentation/diary_detail_page.dart';
+import '../features/diary/presentation/diary_list_page.dart';
+import '../features/submit/presentation/submit_page.dart';
 import '../features/home/presentation/home_page.dart';
 import '../features/me/presentation/me_controller.dart';
 import 'redirect.dart';
@@ -55,6 +61,37 @@ GoRouter router(Ref ref) {
         path: '/dates/:id/camera',
         builder: (context, state) =>
             CameraPage(dateId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/dates/:id/submit',
+        builder: (context, state) =>
+            SubmitPage(dateId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/dates/:id/develop',
+        builder: (context, state) => DevelopPage(
+          dateId: state.pathParameters['id']!,
+          photoId: state.uri.queryParameters['photo'],
+        ),
+      ),
+      GoRoute(
+        path: '/dates/:id/receive',
+        builder: (context, state) =>
+            ReceivePage(dateId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/dates/:id/waiting',
+        builder: (context, state) =>
+            WaitingPage(dateId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: AppRoutes.diary,
+        builder: (context, state) => const DiaryListPage(),
+      ),
+      GoRoute(
+        path: '/diary/:id',
+        builder: (context, state) =>
+            DiaryDetailPage(dateId: state.pathParameters['id']!),
       ),
     ],
   );

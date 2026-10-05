@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:phodam/core/network/api_error.dart';
@@ -112,6 +113,99 @@ void main() {
       expect(() => h.backend.reserveShot(dateId),
           fails(ApiErrorCode.dateNotActive));
       expect(h.backend.me().currentDate, isNull);
+    });
+  });
+
+  group('제출·수령·공개', () {
+    late String dateId;
+
+    Future<String> shootAndUpload() async {
+      final shot = h.backend.reserveShot(dateId);
+      await h.backend.storeObject(shot.photo.id, Uint8List.fromList([1, 2]));
+      h.backend.complete(shot.photo.id);
+      return shot.photo.id;
+    }
+
+    setUp(() {
+      h.backend.login('alice', nickname: '앨리스');
+      final code = h.backend.createInvite().code;
+      h.backend.login('bob', nickname: '밥');
+      h.backend.joinCouple(code);
+      h.backend.login('alice');
+      dateId = h.backend.startDate().id;
+    });
+
+    test('제출 전에는 수령할 수 없고, 업로드 안 된 사진은 제출할 수 없다', () async {
+      expect(() => h.backend.receivable(dateId),
+          fails(ApiErrorCode.receiveNotAvailable));
+      final reserved = h.backend.reserveShot(dateId).photo.id;
+      expect(() => h.backend.submit(dateId, photoId: reserved),
+          fails(ApiErrorCode.photoNotUploaded));
+    });
+
+    test('제출하면 수정·추가 촬영 불가, 전체 사진 수령 가능, 상대에게는 비공개', () async {
+      final rep = await shootAndUpload();
+      final other = await shootAndUpload();
+      h.backend.reserveShot(dateId); // 업로드하지 않은 샷
+
+      final submitted =
+          h.backend.submit(dateId, photoId: rep, caption: '  첫 장  ');
+      expect(submitted.me.status.name, 'submitted');
+      expect(submitted.me.receiveDeadlineAt,
+          submitted.me.submittedAt!.add(const Duration(days: 7)));
+      expect(() => h.backend.submit(dateId, photoId: other),
+          fails(ApiErrorCode.alreadySubmitted));
+      expect(() => h.backend.reserveShot(dateId),
+          fails(ApiErrorCode.alreadySubmitted));
+
+      final receivable = h.backend.receivable(dateId);
+      expect(receivable.items.map((p) => p.id), unorderedEquals([rep, other]));
+
+      expect(h.backend.diaries().items.single.visibility.name, 'waiting');
+      h.backend.login('bob');
+      expect(() => h.backend.diary(dateId), fails(ApiErrorCode.notFound));
+      expect(h.backend.getDate(dateId).partner.topic, isNull);
+    });
+
+    test('비대표 ack 는 received 로 목록에서 빠지고, 대표는 남는다', () async {
+      final rep = await shootAndUpload();
+      final other = await shootAndUpload();
+      h.backend.submit(dateId, photoId: rep);
+
+      expect(h.backend.ackReceived(other).status.name, 'received');
+      expect(h.backend.ackReceived(rep).status.name, 'archived');
+      expect(h.backend.ackReceived(other).status.name, 'received', reason: '멱등');
+
+      final items = h.backend.receivable(dateId).items;
+      expect(items.single.id, rep);
+      expect(items.single.receivedAt, isNotNull);
+    });
+
+    test('둘 다 제출하면 공동 공개되고 상대 주제·사진·글이 보인다', () async {
+      final rep = await shootAndUpload();
+      h.backend.submit(dateId, photoId: rep, caption: '앨리스 글');
+      h.backend.debugPartnerSubmit();
+
+      final date = h.backend.getDate(dateId);
+      expect(date.status.name, 'revealed');
+      expect(date.partner.topic, isNotNull);
+      final detail = h.backend.diary(dateId);
+      expect(detail.visibility.name, 'shared');
+      expect(detail.entries.map((e) => e.isMe), [true, false]);
+    });
+
+    test('한 명만 제출하고 만료되면 private, 수령 기한은 그대로', () async {
+      final rep = await shootAndUpload();
+      await shootAndUpload();
+      h.backend.submit(dateId, photoId: rep);
+      h.now = h.now.add(const Duration(hours: 72));
+
+      expect(h.backend.diary(dateId).visibility.name, 'private');
+      expect(h.backend.receivable(dateId).items, hasLength(2));
+
+      h.now = h.now.add(const Duration(days: 7));
+      expect(() => h.backend.receivable(dateId),
+          fails(ApiErrorCode.receiveNotAvailable));
     });
   });
 }
