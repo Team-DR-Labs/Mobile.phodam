@@ -5,21 +5,24 @@ plugins {
 }
 
 android {
-    namespace = "com.phodam.phodam"
+    namespace = "com.drlabs.podam"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        // flutter_local_notifications 가 요구한다.
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.phodam.phodam"
+        applicationId = "com.drlabs.podam"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // camera(CameraX)·firebase 가 23 이상을 요구한다.
+        minSdk = maxOf(23, flutter.minSdkVersion)
         targetSdk = flutter.targetSdkVersion
         // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
         // is added automatically by Flutter. (https://developer.android.com/studio/build/configure-apk-splits#configure-APK-versions)
@@ -46,4 +49,14 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+}
+
+// google-services.json 이 있을 때만 적용한다(없으면 Firebase 없이 빌드되고 푸시만 꺼진다).
+// 파일은 scripts/setup_firebase.sh 로 복사한다.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
 }

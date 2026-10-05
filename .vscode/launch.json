@@ -2,11 +2,25 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "phodam (mock)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": ["--dart-define-from-file=env/mock.json"]
+    },
+    {
       "name": "phodam (dev)",
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",
       "args": ["--dart-define-from-file=env/dev.json"]
+    },
+    {
+      "name": "phodam (dev, Android emulator)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": ["--dart-define-from-file=env/dev.android.json"]
     },
     {
       "name": "phodam (prod)",

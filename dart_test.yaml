@@ -1,0 +1,5 @@
+# 계약 테스트(test/contract)는 로컬 실서버가 필요하므로 기본 실행에서 건너뛴다.
+# 실행: flutter test --tags contract --run-skipped
+tags:
+  contract:
+    skip: "로컬 서버 필요: flutter test --tags contract --run-skipped"

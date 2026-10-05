@@ -50,3 +50,7 @@ app.*.map.json
 
 # Agent tooling
 .omc/
+
+# Firebase 클라이언트 설정 (scripts/setup_firebase.sh 로 ~/.secrets/phodam 에서 복사)
+ios/Runner/GoogleService-Info.plist
+android/app/google-services.json

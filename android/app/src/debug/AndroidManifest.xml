@@ -4,4 +4,6 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- 개발 서버(http://10.0.2.2:8080, LAN IP)와 MinIO presigned URL 은 평문 HTTP 다. -->
+    <application android:usesCleartextTraffic="true"/>
 </manifest>
