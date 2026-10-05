@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/config/env.dart';
 import '../core/theme/app_theme.dart';
+import 'app_sync.dart';
 import 'router.dart';
 
 class App extends ConsumerWidget {
@@ -23,6 +24,7 @@ class App extends ConsumerWidget {
       supportedLocales: const [Locale('ko')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       routerConfig: router,
+      builder: (context, child) => AppSync(child: child ?? const SizedBox()),
     );
   }
 }

@@ -5,7 +5,9 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../features/auth/presentation/auth_controller.dart';
 import '../features/auth/presentation/login_page.dart';
 import '../features/auth/presentation/splash_page.dart';
+import '../features/camera/presentation/camera_page.dart';
 import '../features/couple/presentation/couple_page.dart';
+import '../features/date/presentation/topic_page.dart';
 import '../features/home/presentation/home_page.dart';
 import '../features/me/presentation/me_controller.dart';
 import 'redirect.dart';
@@ -43,6 +45,16 @@ GoRouter router(Ref ref) {
       GoRoute(
         path: AppRoutes.home,
         builder: (context, state) => const HomePage(),
+      ),
+      GoRoute(
+        path: '/dates/:id/topic',
+        builder: (context, state) =>
+            TopicPage(dateId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/dates/:id/camera',
+        builder: (context, state) =>
+            CameraPage(dateId: state.pathParameters['id']!),
       ),
     ],
   );
