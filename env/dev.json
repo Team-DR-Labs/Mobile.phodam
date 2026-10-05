@@ -1,4 +1,7 @@
 {
   "ENV": "dev",
-  "BASE_URL": "https://jsonplaceholder.typicode.com"
+  "BASE_URL": "http://localhost:8080/v1",
+  "USE_MOCK": false,
+  "GOOGLE_SERVER_CLIENT_ID": "",
+  "GOOGLE_IOS_CLIENT_ID": ""
 }
