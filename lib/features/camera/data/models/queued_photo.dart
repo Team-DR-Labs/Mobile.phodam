@@ -20,11 +20,17 @@ abstract class QueuedPhoto with _$QueuedPhoto {
   const factory QueuedPhoto({
     required String photoId,
     required String dateId,
+
+    /// 촬영한 계정. 다른 계정으로 로그인하면 처리하지 않고 보존한다.
+    required String userId,
     required String filePath,
     required QueueStatus status,
     required DateTime createdAt,
     UploadTarget? target,
     @Default(0) int attempts,
+
+    /// 실패 후 다음 자동 재시도 시각(백오프). null 이면 바로 시도한다.
+    DateTime? nextAttemptAt,
   }) = _QueuedPhoto;
 
   factory QueuedPhoto.fromJson(Map<String, dynamic> json) =>

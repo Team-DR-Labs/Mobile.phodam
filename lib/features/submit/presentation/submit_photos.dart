@@ -57,11 +57,26 @@ List<SelectablePhoto> mergeSelectable(
   return merged..sort((a, b) => a.createdAt.compareTo(b.createdAt));
 }
 
-/// 이 데이트에서 내가 찍은 사진. 업로드 큐가 바뀌면 다시 계산한다.
+/// 서버의 내 사진 목록. 이 데이트에서 업로드가 끝난 사진이 바뀔 때만 다시 받는다.
+@riverpod
+Future<List<PhotoWithUrl>> myServerPhotos(Ref ref, String dateId) async {
+  await ref.watch(
+    uploadQueueProvider.selectAsync(
+      (items) => items
+          .forDate(dateId)
+          .where((i) => i.status == QueueStatus.uploaded)
+          .map((i) => i.photoId)
+          .join(','),
+    ),
+  );
+  return ref.watch(photoRepositoryProvider).myPhotos(dateId);
+}
+
+/// 이 데이트에서 내가 찍은 사진. 로컬 큐 변화는 네트워크 호출 없이 반영한다.
 @riverpod
 Future<List<SelectablePhoto>> selectablePhotos(Ref ref, String dateId) async {
   final queue = await ref.watch(uploadQueueProvider.future);
-  final server = await ref.watch(photoRepositoryProvider).myPhotos(dateId);
+  final server = await ref.watch(myServerPhotosProvider(dateId).future);
   return mergeSelectable(server, queue.forDate(dateId));
 }
 

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/routes.dart';
 import '../../../core/network/api_error.dart';
 import '../../../core/widgets/error_view.dart';
+import '../../camera/data/upload_queue.dart';
 import '../../date/presentation/date_controller.dart';
 import 'caption_field.dart';
 import 'photo_picker_grid.dart';
@@ -26,6 +27,18 @@ class _SubmitPageState extends ConsumerState<SubmitPage> {
   final _caption = TextEditingController();
   String? _selectedId;
   bool _submitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // 남은 업로드가 있으면 백오프를 기다리지 않고 바로 시도한다.
+    ref.read(uploadQueueProvider.notifier).process(force: true);
+  }
+
+  Future<void> _refresh() async {
+    await ref.read(uploadQueueProvider.notifier).process(force: true);
+    ref.invalidate(myServerPhotosProvider(widget.dateId));
+  }
 
   @override
   void dispose() {
@@ -59,7 +72,9 @@ class _SubmitPageState extends ConsumerState<SubmitPage> {
     if (photoId == null || !await _confirm()) return;
     setState(() => _submitting = true);
     try {
-      await ref.read(dateActionsProvider).submit(
+      await ref
+          .read(dateActionsProvider)
+          .submit(
             widget.dateId,
             photoId: photoId,
             caption: normalizeCaption(_caption.text),
@@ -80,7 +95,7 @@ class _SubmitPageState extends ConsumerState<SubmitPage> {
         context.go(AppRoutes.receive(widget.dateId));
       }
       if (e.code == ApiErrorCode.photoNotUploaded) {
-        ref.invalidate(selectablePhotosProvider(widget.dateId));
+        ref.invalidate(myServerPhotosProvider(widget.dateId));
       }
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -101,37 +116,39 @@ class _SubmitPageState extends ConsumerState<SubmitPage> {
           onRetry: () =>
               ref.invalidate(selectablePhotosProvider(widget.dateId)),
         ),
-        data: (items) => ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            Text(
-              items.isEmpty
-                  ? '아직 찍은 사진이 없어요.'
-                  : '상대에게 보여줄 한 장을 골라 주세요. 나머지 사진은 제출 후 받을 수 있어요.',
-              style: theme.textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 12),
-            PhotoPickerGrid(
-              photos: items,
-              selectedId: _selectedId,
-              onSelect: (id) => setState(() => _selectedId = id),
-            ),
-            const SizedBox(height: 16),
-            CaptionField(controller: _caption),
-            const SizedBox(height: 16),
-            FilledButton(
-              key: const Key('submitButton'),
-              onPressed:
-                  _selectedId == null || _submitting ? null : _submit,
-              child: const Text('제출하기'),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '제출 후에는 사진과 글을 수정할 수 없어요.',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodySmall,
-            ),
-          ],
+        data: (items) => RefreshIndicator(
+          onRefresh: _refresh,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              Text(
+                items.isEmpty
+                    ? '아직 찍은 사진이 없어요.'
+                    : '상대에게 보여줄 한 장을 골라 주세요. 나머지 사진은 제출 후 받을 수 있어요.',
+                style: theme.textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 12),
+              PhotoPickerGrid(
+                photos: items,
+                selectedId: _selectedId,
+                onSelect: (id) => setState(() => _selectedId = id),
+              ),
+              const SizedBox(height: 16),
+              CaptionField(controller: _caption),
+              const SizedBox(height: 16),
+              FilledButton(
+                key: const Key('submitButton'),
+                onPressed: _selectedId == null || _submitting ? null : _submit,
+                child: const Text('제출하기'),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '제출 후에는 사진과 글을 수정할 수 없어요.',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall,
+              ),
+            ],
+          ),
         ),
       ),
     );

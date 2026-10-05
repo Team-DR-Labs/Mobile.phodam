@@ -73,6 +73,7 @@ class AuthController extends _$AuthController {
         refreshToken: response.refreshToken,
       ),
     );
+    await _storage.writeUserId(response.user.id);
     if (ref.mounted) state = AuthStatus.signedIn;
   }
 

@@ -58,7 +58,7 @@ class _AppSyncState extends ConsumerState<AppSync> {
   }
 
   void _retryUploads() {
-    if (_signedIn) ref.read(uploadQueueProvider.notifier).process();
+    if (_signedIn) ref.read(uploadQueueProvider.notifier).process(force: true);
   }
 
   @override

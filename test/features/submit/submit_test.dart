@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:phodam/features/camera/data/models/photo_models.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:phodam/features/camera/data/models/queued_photo.dart';
+import 'package:phodam/features/camera/data/photo_repository.dart';
+import 'package:phodam/features/camera/data/upload_queue.dart';
 import 'package:phodam/features/submit/presentation/submit_page.dart';
 import 'package:phodam/features/submit/presentation/submit_photos.dart';
 
@@ -15,6 +18,7 @@ void main() {
         QueuedPhoto(
           photoId: 'p1',
           dateId: 'd1',
+          userId: 'u-alice',
           filePath: '/q/p1.jpg',
           status: QueueStatus.uploaded,
           createdAt: t0,
@@ -22,6 +26,7 @@ void main() {
         QueuedPhoto(
           photoId: 'p2',
           dateId: 'd1',
+          userId: 'u-alice',
           filePath: '/q/p2.jpg',
           status: QueueStatus.pending,
           createdAt: t0.add(const Duration(minutes: 1)),
@@ -45,6 +50,41 @@ void main() {
     });
   });
 
+  test('큐의 업로드 완료 목록이 바뀔 때만 my-photos 를 다시 부른다', () async {
+    final repository = MockPhotoRepository();
+    when(() => repository.myPhotos('d1')).thenAnswer((_) async => const []);
+    final queue = _SettableQueue();
+    final container = ProviderContainer.test(
+      overrides: [
+        photoRepositoryProvider.overrideWithValue(repository),
+        uploadQueueProvider.overrideWith(() => queue),
+      ],
+    );
+    container.listen(selectablePhotosProvider('d1'), (_, _) {});
+    QueuedPhoto item(String id, QueueStatus status, {int attempts = 0}) =>
+        QueuedPhoto(
+          photoId: id,
+          dateId: 'd1',
+          userId: 'u-alice',
+          filePath: '/q/$id.jpg',
+          status: status,
+          createdAt: t0,
+          attempts: attempts,
+        );
+
+    await container.read(selectablePhotosProvider('d1').future);
+    queue.set([item('p1', QueueStatus.pending)]);
+    await container.read(selectablePhotosProvider('d1').future);
+    queue.set([item('p1', QueueStatus.pending, attempts: 1)]);
+    final pending = await container.read(selectablePhotosProvider('d1').future);
+    expect(pending.single.uploaded, isFalse);
+    verify(() => repository.myPhotos('d1')).called(1);
+
+    queue.set([item('p1', QueueStatus.uploaded)]);
+    await container.read(selectablePhotosProvider('d1').future);
+    verify(() => repository.myPhotos('d1')).called(1);
+  });
+
   test('글자 수는 앞뒤 공백을 빼고 rune 으로 센다', () {
     expect(captionLength('  안녕  '), 2);
     expect(captionLength('👍'), 1);
@@ -62,6 +102,7 @@ void main() {
         ProviderScope(
           overrides: [
             selectablePhotosProvider('d1').overrideWith((ref) async => photos),
+            uploadQueueProvider.overrideWith(_IdleQueue.new),
           ],
           child: const MaterialApp(home: SubmitPage(dateId: 'd1')),
         ),
@@ -129,4 +170,24 @@ void main() {
       expect(field.controller!.text.runes.length, lessThanOrEqualTo(200));
     });
   });
+}
+
+class _IdleQueue extends UploadQueue {
+  @override
+  Future<List<QueuedPhoto>> build() async => const [];
+
+  @override
+  Future<void> process({bool force = false}) async {}
+}
+
+class MockPhotoRepository extends Mock implements PhotoRepository {}
+
+class _SettableQueue extends UploadQueue {
+  @override
+  Future<List<QueuedPhoto>> build() async => const [];
+
+  void set(List<QueuedPhoto> items) => state = AsyncData(items);
+
+  @override
+  Future<void> process({bool force = false}) async {}
 }

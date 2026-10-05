@@ -18,6 +18,7 @@ class SecureStorage {
 
   static const _accessTokenKey = 'access_token';
   static const _refreshTokenKey = 'refresh_token';
+  static const _userIdKey = 'user_id';
 
   Future<String?> readAccessToken() => _storage.read(key: _accessTokenKey);
 
@@ -28,9 +29,17 @@ class SecureStorage {
     await _storage.write(key: _refreshTokenKey, value: tokens.refreshToken);
   }
 
+  /// 로그인한 사용자 id. 업로드 큐를 계정별로 나누는 데 쓴다.
+  Future<String?> readUserId() => _storage.read(key: _userIdKey);
+
+  Future<void> writeUserId(String userId) =>
+      _storage.write(key: _userIdKey, value: userId);
+
+  /// 토큰과 사용자 id 를 지운다.
   Future<void> clearTokens() async {
     await _storage.delete(key: _accessTokenKey);
     await _storage.delete(key: _refreshTokenKey);
+    await _storage.delete(key: _userIdKey);
   }
 
   Future<void> clear() => _storage.deleteAll();
