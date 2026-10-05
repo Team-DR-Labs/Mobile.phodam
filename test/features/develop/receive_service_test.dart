@@ -104,4 +104,18 @@ void main() {
     expect(retried, ReceiveOutcome.saved);
     verify(() => gallery.saveImage(any())).called(1);
   });
+
+  test('로컬 정리가 실패해도 저장·ack 가 끝났으면 saved', () async {
+    when(() => gallery.saveImage(any())).thenAnswer((_) async {});
+    final failing = ReceiveService(
+      repository: repository,
+      transfer: transfer,
+      gallery: gallery,
+      tempDir: () async => dir,
+      onReceived: (_) async => throw StateError('disposed'),
+    );
+
+    expect(await failing.receive(photoWithUrl('p1')), ReceiveOutcome.saved);
+    verify(() => repository.ackReceived('p1')).called(1);
+  });
 }

@@ -61,7 +61,12 @@ class ReceiveService {
       log?.call('수령 확인 실패 ${photo.id}', e);
       return ReceiveOutcome.ackFailed;
     }
-    await onReceived(photo.id);
+    try {
+      await onReceived(photo.id);
+    } catch (e) {
+      // 저장·ack 는 끝났으므로 결과는 성공이다. 로컬 정리는 보관 기한 정리에 맡긴다.
+      log?.call('수령 후 로컬 정리 실패 ${photo.id}', e);
+    }
     return ReceiveOutcome.saved;
   }
 
@@ -84,14 +89,20 @@ class ReceiveService {
   }
 }
 
-@riverpod
+/// 다운로드 임시 폴더.
+@Riverpod(keepAlive: true)
+Future<Directory> Function() receiveTempDir(Ref ref) => getTemporaryDirectory;
+
+/// keepAlive: onReceived 가 이 provider 의 ref 를 쓰므로, 수령 루프 도중
+/// autoDispose 로 ref 가 끊기면 안 된다.
+@Riverpod(keepAlive: true)
 ReceiveService receiveService(Ref ref) {
   final logger = ref.watch(appLoggerProvider);
   return ReceiveService(
     repository: ref.watch(photoRepositoryProvider),
     transfer: ref.watch(photoTransferProvider),
     gallery: ref.watch(gallerySaverProvider),
-    tempDir: getTemporaryDirectory,
+    tempDir: ref.watch(receiveTempDirProvider),
     onReceived: (id) => ref.read(uploadQueueProvider.notifier).remove(id),
     log: (message, error) => logger.w(message, error: error),
   );

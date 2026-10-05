@@ -99,12 +99,14 @@ class ReceiveController extends _$ReceiveController {
     final ids = photoIds.toList();
     final current = _current;
     if (ids.isEmpty || current == null || current.running) return;
-    if (!await ref.read(gallerySaverProvider).ensureAccess()) {
-      _update((s) => s.copyWith(permissionDenied: true));
-      return;
-    }
-    _update((s) => s.copyWith(permissionDenied: false, running: true));
+    // 권한 요청을 기다리는 동안 중복 실행되지 않도록 먼저 표시한다.
+    _update((s) => s.copyWith(running: true));
     try {
+      if (!await ref.read(gallerySaverProvider).ensureAccess()) {
+        _update((s) => s.copyWith(permissionDenied: true));
+        return;
+      }
+      _update((s) => s.copyWith(permissionDenied: false));
       final fresh = await _freshUrls();
       final service = ref.read(receiveServiceProvider);
       for (final id in ids) {
