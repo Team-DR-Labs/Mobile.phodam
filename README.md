@@ -78,10 +78,10 @@ VS Code 는 `.vscode/launch.json` 의 `phodam (mock)` / `phodam (dev)` / `phodam
 
 ## 외부 계정이 준비되면 채울 것
 
-- **Apple 로그인**: Apple Developer 에서 App ID(`com.phodam.phodam`)에 Sign in with Apple 활성화. `ios/Runner/Runner.entitlements` 는 이미 연결되어 있다. 서버의 Apple `aud` 는 번들 ID. Android 의 Apple 로그인은 서비스 ID·웹 리다이렉트가 필요해 MVP 에서는 iOS 만 노출한다.
+- **Apple 로그인**: Apple Developer 에서 App ID(`com.drlabs.podam`)에 Sign in with Apple 활성화. `ios/Runner/Runner.entitlements` 는 이미 연결되어 있다. 서버의 Apple `aud` 는 번들 ID. Android 의 Apple 로그인은 서비스 ID·웹 리다이렉트가 필요해 MVP 에서는 iOS 만 노출한다.
 - **Google 로그인**: Google Cloud 콘솔에서 웹(서버)·iOS·Android(패키지 + SHA-1) OAuth 클라이언트 생성 → `GOOGLE_SERVER_CLIENT_ID`(필수), `GOOGLE_IOS_CLIENT_ID` 채우기. iOS 는 `Info.plist` 에 `CFBundleURLTypes` 로 iOS 클라이언트의 reversed client ID URL scheme 을 추가해야 한다.
 - **FCM 푸시**
-  1. Firebase 프로젝트에 iOS(`com.phodam.phodam`)·Android(`com.phodam.phodam`) 앱 등록
+  1. Firebase 프로젝트에 iOS(`com.drlabs.podam`)·Android(`com.drlabs.podam`) 앱 등록
   2. `ios/Runner/GoogleService-Info.plist` 추가(Xcode 에서 Runner 타깃에 포함), APNs 인증 키를 Firebase 에 업로드, Push Notifications capability 확인(`aps-environment` 는 entitlements 에 있음)
   3. `android/app/google-services.json` 추가 후 `android/settings.gradle.kts` 에 `id("com.google.gms.google-services") version "<최신>" apply false`, `android/app/build.gradle.kts` 에 `id("com.google.gms.google-services")` 를 추가
   - 설정 파일이 없으면 앱은 Firebase 초기화 실패를 로그로만 남기고 푸시 없이 동작한다. (그래서 google-services 플러그인은 아직 추가하지 않았다. 파일 없이 추가하면 빌드가 깨진다.)

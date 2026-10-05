@@ -1,4 +1,4 @@
-package com.phodam.phodam
+package com.drlabs.podam
 
 import io.flutter.embedding.android.FlutterActivity
 

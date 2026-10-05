@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.phodam.phodam"
+    namespace = "com.drlabs.podam"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -16,7 +16,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.phodam.phodam"
+        applicationId = "com.drlabs.podam"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         // camera(CameraX)·firebase 가 23 이상을 요구한다.
