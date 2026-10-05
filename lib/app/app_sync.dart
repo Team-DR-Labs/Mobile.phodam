@@ -2,11 +2,14 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/network/connectivity.dart';
+import '../core/push/push_service.dart';
 import '../features/auth/presentation/auth_controller.dart';
 import '../features/camera/data/upload_queue.dart';
 import '../features/me/presentation/me_controller.dart';
+import 'push_routes.dart';
+import 'router.dart';
 
-/// 앱 복귀·온라인 복귀·로그인 시 업로드 큐 재시도와 `/me` 갱신을 건다.
+/// 앱 복귀·온라인 복귀·로그인 시 업로드 큐 재시도와 `/me` 갱신을 걸고, 푸시를 연결한다.
 class AppSync extends ConsumerStatefulWidget {
   const AppSync({super.key, required this.child});
 
@@ -25,6 +28,21 @@ class _AppSyncState extends ConsumerState<AppSync> {
   void initState() {
     super.initState();
     _lifecycle = AppLifecycleListener(onResume: _onResume);
+    _initPush();
+  }
+
+  Future<void> _initPush() async {
+    final push = ref.read(pushServiceProvider);
+    await push.init(
+      onForeground: (_) {
+        if (_signedIn) ref.read(meControllerProvider.notifier).reload();
+      },
+      onOpen: (data) {
+        final route = routeForPush(data);
+        if (route != null) ref.read(routerProvider).go(route);
+      },
+    );
+    if (_signedIn) await push.registerToken();
   }
 
   @override
@@ -46,7 +64,9 @@ class _AppSyncState extends ConsumerState<AppSync> {
   @override
   Widget build(BuildContext context) {
     ref.listen(authControllerProvider, (previous, next) {
-      if (next == AuthStatus.signedIn) _retryUploads();
+      if (next != AuthStatus.signedIn) return;
+      _retryUploads();
+      ref.read(pushServiceProvider).registerToken();
     });
     ref.listen(onlineProvider, (previous, next) {
       if (next.value == true && previous?.value != true) _retryUploads();
