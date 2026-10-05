@@ -6,6 +6,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:phodam/features/camera/data/models/queued_photo.dart';
 import 'package:phodam/features/camera/data/photo_repository.dart';
 import 'package:phodam/features/camera/data/upload_queue.dart';
+import 'package:phodam/features/submit/presentation/caption_field.dart';
 import 'package:phodam/features/submit/presentation/submit_page.dart';
 import 'package:phodam/features/submit/presentation/submit_photos.dart';
 
@@ -90,6 +91,30 @@ void main() {
     expect(captionLength('👍'), 1);
     expect(normalizeCaption('   '), isNull);
     expect(normalizeCaption(' 좋아 '), '좋아');
+  });
+
+  group('RuneLimitFormatter', () {
+    const formatter = RuneLimitFormatter(5);
+
+    test('앞뒤 공백은 세지 않는다(카운터와 같은 기준)', () {
+      final result = formatter.formatEditUpdate(
+          _value('  abcd'), _value('  abcde  '));
+      expect(result.text, '  abcde  ');
+    });
+
+    test('넘치는 붙여넣기는 들어갈 만큼만 잘라 넣는다', () {
+      final result = formatter.formatEditUpdate(_value('ab'), _value('ab👍👍👍👍'));
+      expect(result.text, 'ab👍👍👍');
+      expect(captionLength(result.text), 5);
+      expect(result.selection.baseOffset, result.text.length);
+    });
+
+    test('가운데 붙여넣기는 뒤쪽 기존 글을 지우지 않는다', () {
+      final result = formatter.formatEditUpdate(
+          _value('ae', 1), _value('abcdxyze', 7));
+      expect(result.text, 'abcde');
+      expect(result.selection.baseOffset, 4);
+    });
   });
 
   group('SubmitPage', () {
@@ -191,3 +216,8 @@ class _SettableQueue extends UploadQueue {
   @override
   Future<void> process({bool force = false}) async {}
 }
+
+TextEditingValue _value(String text, [int? cursor]) => TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: cursor ?? text.length),
+    );

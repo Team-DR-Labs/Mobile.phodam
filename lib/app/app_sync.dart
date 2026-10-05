@@ -21,6 +21,16 @@ class AppSync extends ConsumerStatefulWidget {
 
 class _AppSyncState extends ConsumerState<AppSync> {
   late final AppLifecycleListener _lifecycle;
+  final _deepLink = PendingDeepLink();
+
+  bool get _ready => isReadyForDeepLink(
+        ref.read(authControllerProvider),
+        ref.read(meControllerProvider),
+      );
+
+  void _go(String? route) {
+    if (route != null) ref.read(routerProvider).go(route);
+  }
 
   bool get _signedIn => ref.read(authControllerProvider) == AuthStatus.signedIn;
 
@@ -39,7 +49,8 @@ class _AppSyncState extends ConsumerState<AppSync> {
       },
       onOpen: (data) {
         final route = routeForPush(data);
-        if (route != null) ref.read(routerProvider).go(route);
+        // 콜드 스타트 알림은 인증 복원·/me 로딩 전에 올 수 있어 준비될 때까지 보류한다.
+        if (route != null) _go(_deepLink.offer(route, ready: _ready));
       },
     );
     if (_signedIn) await push.registerToken();
@@ -67,6 +78,9 @@ class _AppSyncState extends ConsumerState<AppSync> {
       if (next != AuthStatus.signedIn) return;
       _retryUploads();
       ref.read(pushServiceProvider).registerToken();
+    });
+    ref.listen(meControllerProvider, (_, _) {
+      _go(_deepLink.release(ready: _ready));
     });
     ref.listen(onlineProvider, (previous, next) {
       if (next.value == true && previous?.value != true) _retryUploads();

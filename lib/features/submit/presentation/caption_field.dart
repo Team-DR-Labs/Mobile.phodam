@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 
 import 'submit_photos.dart';
 
-/// rune 기준으로 길이를 제한한다(이모지 등 서버 기준과 맞추기 위함).
+/// 서버와 같은 기준(앞뒤 공백 제거 후 rune 수)으로 길이를 제한한다.
+///
+/// 넘치는 붙여넣기는 거부하지 않고 들어갈 만큼만 잘라 넣는다.
 class RuneLimitFormatter extends TextInputFormatter {
   const RuneLimitFormatter(this.max);
 
@@ -13,8 +15,39 @@ class RuneLimitFormatter extends TextInputFormatter {
   TextEditingValue formatEditUpdate(
     TextEditingValue oldValue,
     TextEditingValue newValue,
-  ) =>
-      newValue.text.runes.length > max ? oldValue : newValue;
+  ) {
+    if (captionLength(newValue.text) <= max) return newValue;
+    final old = oldValue.text;
+    final start = oldValue.selection.isValid
+        ? oldValue.selection.start
+        : old.length;
+    final end = oldValue.selection.isValid
+        ? oldValue.selection.end
+        : old.length;
+    final prefix = old.substring(0, start);
+    final suffix = old.substring(end);
+    final text = newValue.text;
+    final isInsertion =
+        text.length >= prefix.length + suffix.length &&
+        text.startsWith(prefix) &&
+        text.endsWith(suffix);
+    if (!isInsertion) return oldValue;
+    final inserted = text
+        .substring(prefix.length, text.length - suffix.length)
+        .runes
+        .toList();
+    var keep = (max - captionLength(prefix + suffix)).clamp(0, inserted.length);
+    String build(int n) =>
+        prefix + String.fromCharCodes(inserted.take(n)) + suffix;
+    while (keep > 0 && captionLength(build(keep)) > max) {
+      keep--;
+    }
+    final head = prefix + String.fromCharCodes(inserted.take(keep));
+    return TextEditingValue(
+      text: head + suffix,
+      selection: TextSelection.collapsed(offset: head.length),
+    );
+  }
 }
 
 class CaptionField extends StatelessWidget {
