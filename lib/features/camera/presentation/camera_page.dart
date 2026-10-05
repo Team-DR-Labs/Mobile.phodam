@@ -39,6 +39,7 @@ class _CameraPageState extends ConsumerState<CameraPage>
 
   /// 카메라가 없는 기기(시뮬레이터)에서 개발용으로 다미 이미지를 찍는다.
   bool _fakeCamera = false;
+  bool _initializing = false;
 
   @override
   void initState() {
@@ -56,18 +57,26 @@ class _CameraPageState extends ConsumerState<CameraPage>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    final controller = _controller;
-    if (controller == null || !controller.value.isInitialized) return;
-    if (state == AppLifecycleState.inactive) {
-      _controller = null;
-      controller.dispose();
-      if (mounted) setState(() {});
-    } else if (state == AppLifecycleState.resumed) {
-      _initCamera();
+    switch (cameraLifecycleAction(
+      state,
+      hasController: _controller != null,
+      initializing: _initializing,
+      fakeCamera: _fakeCamera,
+    )) {
+      case CameraLifecycleAction.release:
+        final controller = _controller!;
+        setState(() => _controller = null);
+        controller.dispose();
+      case CameraLifecycleAction.reinitialize:
+        _initCamera();
+      case CameraLifecycleAction.none:
+        break;
     }
   }
 
   Future<void> _initCamera() async {
+    if (_initializing) return;
+    _initializing = true;
     try {
       final cameras = await availableCameras();
       if (cameras.isEmpty) {
@@ -110,6 +119,8 @@ class _CameraPageState extends ConsumerState<CameraPage>
         _fakeCamera = !Env.isProd;
         if (Env.isProd) _cameraError = '카메라를 열 수 없어요.';
       });
+    } finally {
+      _initializing = false;
     }
   }
 

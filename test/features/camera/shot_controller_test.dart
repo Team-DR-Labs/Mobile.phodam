@@ -133,4 +133,21 @@ void main() {
     expect(container.read(meControllerProvider).value?.filmBalance, 4);
     expect(queue.added, isEmpty);
   });
+
+  test('처리 중 화면을 떠나도(구독 해제) 큐에 들어간다', () async {
+    final reserve = Completer<ShotReservation>();
+    when(() => repository.reserveShot('d1')).thenAnswer((_) => reserve.future);
+    final container = await createContainer();
+    final sub = container.listen(shotControllerProvider('d1'), (_, _) {});
+
+    final result = container
+        .read(shotControllerProvider('d1').notifier)
+        .shoot(() async => raw);
+    sub.close();
+    await pumpEventQueue();
+    reserve.complete(reservation(4));
+
+    expect(await result, isA<ShotSaved>());
+    expect(queue.added, ['p1']);
+  });
 }

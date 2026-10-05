@@ -52,10 +52,13 @@ class ShotController extends _$ShotController {
   Future<ShotResult> shoot(Capture capture) async {
     if (state) return ShotCaptureFailed(StateError('busy'));
     state = true;
+    // 필름은 이미 차감되므로, 처리 중 화면을 떠나도 큐에 넣을 때까지 살아 있어야 한다.
+    final link = ref.keepAlive();
     try {
       return await _shoot(capture);
     } finally {
       if (ref.mounted) state = false;
+      link.close();
     }
   }
 

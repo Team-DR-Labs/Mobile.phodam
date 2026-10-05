@@ -214,3 +214,24 @@ class ShutterButton extends StatelessWidget {
     );
   }
 }
+
+enum CameraLifecycleAction { release, reinitialize, none }
+
+/// 앱 생명주기에 따른 카메라 처리. 비활성 때 놓고, 복귀 때 다시 연다.
+CameraLifecycleAction cameraLifecycleAction(
+  AppLifecycleState state, {
+  required bool hasController,
+  required bool initializing,
+  required bool fakeCamera,
+}) {
+  if (state == AppLifecycleState.inactive && hasController) {
+    return CameraLifecycleAction.release;
+  }
+  if (state == AppLifecycleState.resumed &&
+      !hasController &&
+      !initializing &&
+      !fakeCamera) {
+    return CameraLifecycleAction.reinitialize;
+  }
+  return CameraLifecycleAction.none;
+}
