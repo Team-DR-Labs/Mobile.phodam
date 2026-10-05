@@ -25,9 +25,12 @@ class PushService {
   bool get isReady => _ready;
 
   /// 앱 시작 시 한 번. [onForeground] 는 앱 사용 중 수신, [onOpen] 은 알림 탭.
+  /// [isSignedIn] 이 false 면 토큰 갱신 이벤트를 서버에 등록하지 않는다
+  /// (로그인 후 [registerToken] 이 등록한다).
   Future<void> init({
     required PushDataHandler onForeground,
     required PushDataHandler onOpen,
+    required bool Function() isSignedIn,
   }) async {
     if (_ready) return;
     try {
@@ -43,7 +46,9 @@ class PushService {
         ..add(FirebaseMessaging.onMessage.listen((m) => onForeground(m.data)))
         ..add(FirebaseMessaging.onMessageOpenedApp
             .listen((m) => onOpen(m.data)))
-        ..add(messaging.onTokenRefresh.listen(_register));
+        ..add(messaging.onTokenRefresh.listen((token) {
+          if (isSignedIn()) _register(token);
+        }));
       _ready = true;
       final initial = await messaging.getInitialMessage();
       if (initial != null) onOpen(initial.data);

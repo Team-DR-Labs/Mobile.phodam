@@ -44,6 +44,7 @@ class _AppSyncState extends ConsumerState<AppSync> {
   Future<void> _initPush() async {
     final push = ref.read(pushServiceProvider);
     await push.init(
+      isSignedIn: () => mounted && _signedIn,
       onForeground: (_) {
         if (_signedIn) ref.read(meControllerProvider.notifier).reload();
       },
