@@ -53,11 +53,16 @@ flutter run --dart-define-from-file=env/mock.json
 ```bash
 # Server.phodam 을 APP_ENV=local 로 띄운 뒤
 flutter run --dart-define-from-file=env/dev.json          # iOS 시뮬레이터
-flutter run --dart-define-from-file=env/dev.android.json  # Android 에뮬레이터(10.0.2.2)
+
+# Android 에뮬레이터: 에뮬레이터의 localhost:8080(API)·9000(MinIO)을 맥으로 연결한 뒤 실행
+adb reverse tcp:8080 tcp:8080
+adb reverse tcp:9000 tcp:9000
+flutter run --dart-define-from-file=env/dev.android.json
 ```
 
 - iOS 시뮬레이터는 `http://localhost:8080/v1` 로 맥의 서버에 닿는다.
-- Android 에뮬레이터는 `10.0.2.2` 가 맥의 localhost 다. 디버그 빌드에만 평문 HTTP 를 허용한다(`android/app/src/debug/AndroidManifest.xml`).
+- Android 에뮬레이터는 `adb reverse` 로 API 와 MinIO 를 모두 `localhost` 로 쓴다. 서버가 presigned URL 을 `localhost:9000` 으로 서명하므로 `10.0.2.2` 로는 업로드·다운로드가 맞지 않는다. `adb reverse` 는 에뮬레이터를 다시 켤 때마다 다시 건다. 디버그 빌드에만 평문 HTTP 를 허용한다(`android/app/src/debug/AndroidManifest.xml`).
+- Google 로그인은 에뮬레이터에 Google 계정이 로그인되어 있어야 하고(Google Play 이미지), Firebase/Google Cloud 에 Android OAuth 클라이언트(패키지 `com.drlabs.podam` + 디버그 키 SHA-1)가 등록되어 있어야 한다.
 - **실기기**는 같은 Wi-Fi 의 맥 LAN IP 를 써야 한다. `env/dev.json` 을 복사해 `BASE_URL` 을 `http://<맥 LAN IP>:8080/v1` 로 바꾸고,
   **서버의 `STORAGE_PUBLIC_ENDPOINT` 도 같은 호스트(`http://<맥 LAN IP>:9000` 등)로 맞춰야** presigned URL 업로드·다운로드가 동작한다.
   (presigned URL 의 호스트는 서명에 포함되므로 앱에서 바꿔 쓸 수 없다.)
@@ -80,7 +85,7 @@ VS Code 는 `.vscode/launch.json` 의 `phodam (mock)` / `phodam (dev)` / `phodam
 ## 외부 계정이 준비되면 채울 것
 
 - **Apple 로그인**: Apple Developer 에서 App ID(`com.drlabs.podam`)에 Sign in with Apple 활성화. `ios/Runner/Runner.entitlements` 는 이미 연결되어 있다. 서버의 Apple `aud` 는 번들 ID. Android 의 Apple 로그인은 서비스 ID·웹 리다이렉트가 필요해 MVP 에서는 iOS 만 노출한다.
-- **Google 로그인**: Google Cloud 콘솔에서 웹(서버)·iOS·Android(패키지 + SHA-1) OAuth 클라이언트 생성 → `GOOGLE_SERVER_CLIENT_ID`(필수), `GOOGLE_IOS_CLIENT_ID` 채우기. iOS 는 `Info.plist` 에 `CFBundleURLTypes` 로 iOS 클라이언트의 reversed client ID URL scheme 을 추가해야 한다.
+- **Google 로그인**: 웹(서버)·iOS 클라이언트 ID 는 `env/dev.json`·`env/dev.android.json`·`env/prod.json` 에, iOS URL scheme(reversed client ID)·`GIDClientID`·`GIDServerClientID` 는 `Info.plist` 에 넣어 두었다(비밀 아님). 남은 일: Android OAuth 클라이언트(패키지 `com.drlabs.podam` + SHA-1) 등록 후 `google-services.json` 재복사. 서버의 `GOOGLE_CLIENT_IDS` 에 웹·iOS 클라이언트 ID 를 둘 다 넣는다.
 - **FCM 푸시** (Firebase 프로젝트 `phodam-53a50`, iOS·Android 앱 `com.drlabs.podam` 등록 완료)
   - 설정 파일은 레포에 커밋하지 않는다(.gitignore). 처음 클론했거나 파일이 바뀌면 복사한다:
     ```bash
@@ -92,7 +97,7 @@ VS Code 는 `.vscode/launch.json` 의 `phodam (mock)` / `phodam (dev)` / `phodam
   - 초기화는 설정 파일 기반 `Firebase.initializeApp()`(flutterfire configure 미사용). 실패하면 로그만 남기고 푸시 없이 동작한다.
   - iOS 실제 푸시는 APNs 인증 키를 Firebase 에 올려야 동작한다(미완). Push Notifications capability 의 `aps-environment` 는 entitlements 에 있다.
   - 동작: 권한 요청 → 토큰을 `PUT /me/devices` 로 등록(로그인 시·토큰 갱신 시), 포그라운드 수신 시 `/me` 갱신, 알림 탭 시 `data.date_id` 로 이동(`lib/app/push_routes.dart`).
-  - Google 로그인용 OAuth 클라이언트를 만들면 설정 파일을 다시 받아 스크립트로 복사하고, `GOOGLE_SERVER_CLIENT_ID`·`GOOGLE_IOS_CLIENT_ID`·iOS URL scheme 을 채운다(위 Google 로그인 항목).
+  - 토큰은 로그인한 뒤에만 서버에 등록한다(로그인 전 토큰 갱신 이벤트는 무시하고 로그인 시 등록).
 - **prod**: `env/prod.json` 의 `BASE_URL` 등.
 
 ## 구조 (feature-first)

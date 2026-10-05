@@ -1,7 +1,7 @@
 {
   "ENV": "dev",
-  "BASE_URL": "http://10.0.2.2:8080/v1",
+  "BASE_URL": "http://localhost:8080/v1",
   "USE_MOCK": false,
-  "GOOGLE_SERVER_CLIENT_ID": "",
-  "GOOGLE_IOS_CLIENT_ID": ""
+  "GOOGLE_SERVER_CLIENT_ID": "796920176036-du22g7altqp9jqr3bh68eovl91lkcksd.apps.googleusercontent.com",
+  "GOOGLE_IOS_CLIENT_ID": "796920176036-mcf46367bjehuk0f8jrjqa4kcbha7m69.apps.googleusercontent.com"
 }
