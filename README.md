@@ -130,3 +130,6 @@ dart run build_runner build -d && flutter analyze && flutter test
 flutter build ios --simulator --debug --dart-define-from-file=env/mock.json
 flutter build apk --debug --dart-define-from-file=env/mock.json
 ```
+
+실서버 계약 연동 테스트(`test/contract/`, 기본 실행에서는 건너뜀): 로컬 서버(`http://localhost:8080/v1`, `APP_ENV=local`, MinIO `localhost:9000`)를 띄운 뒤
+`flutter test --tags contract --run-skipped` (다른 주소는 `--dart-define=CONTRACT_BASE_URL=...`).
